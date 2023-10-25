@@ -88,11 +88,15 @@ class Mesh:
             self.nvs.append(len(e))
             self.nvsi.append(len(e) * [i])
             self.nvsin.append(list(range(len(e))))
-        self.vei = torch.from_numpy(np.concatenate(np.array(self.vei)).ravel()).to(self.device).long()
-        self.nvsi = torch.Tensor(np.concatenate(np.array(self.nvsi)).ravel()).to(self.device).long()
-        self.nvsin = torch.from_numpy(np.concatenate(np.array(self.nvsin)).ravel()).to(self.device).long()
+        self.vei = [np.array(_i) for _i in self.vei]
+        self.vei = torch.from_numpy(np.concatenate(self.vei).ravel()).to(self.device).long()
+        self.nvsi = [np.array(_i) for _i in self.nvsi]
+        self.nvsi = torch.Tensor(np.concatenate(self.nvsi).ravel()).to(self.device).long()
+        self.nvsin = [np.array(_i) for _i in self.nvsin]
+        self.nvsin = torch.from_numpy(np.concatenate(self.nvsin).ravel()).to(self.device).long()
         ve_in = copy.deepcopy(self.ve)
-        self.ve_in = torch.from_numpy(np.concatenate(np.array(ve_in)).ravel()).to(self.device).long()
+        ve_in = [np.array(_i) for _i in ve_in]
+        self.ve_in = torch.from_numpy(np.concatenate(ve_in).ravel()).to(self.device).long()
         self.max_nvs = max(self.nvs)
         self.nvs = torch.Tensor(self.nvs).to(self.device).float()
         self.edge2key = edge2key
@@ -364,7 +368,7 @@ class PartMesh:
         for i in range(self.n_submeshes):
             mask = torch.zeros(self.main_mesh.edges.shape[0]).long()
             for face in self.sub_mesh[i].faces:
-                face = self.sub_mesh_index[i][face].to(face.device).long()
+                face = self.sub_mesh_index[i].to(face.device)[face].long()
                 for j in range(3):
                     e = tuple(sorted([face[j].item(), face[(j + 1) % 3].item()]))
                     mask[vse[e]] = 1
@@ -424,7 +428,7 @@ class PartMesh:
         :param mesh: the mesh to sub
         :return: the new submesh
         """
-        vs_mask = torch.zeros(mesh.vs.shape[0])
+        vs_mask = torch.zeros(mesh.vs.shape[0], device=mesh.device)
         vs_mask[vs_index] = 1
         faces_mask = vs_mask[mesh.faces].sum(dim=-1) > 0
         new_faces = mesh.faces[faces_mask].clone()
@@ -433,7 +437,7 @@ class PartMesh:
         new_vs_mask[all_verts] = 1
         new_vs_index = PartMesh.mask_to_index(new_vs_mask)
         new_vs = mesh.vs[new_vs_index, :].clone()
-        vs_mask = torch.zeros(mesh.vs.shape[0])
+        vs_mask = torch.zeros(mesh.vs.shape[0], device=mesh.device)
         vs_mask[new_vs_index] = 1
         cummusum = torch.cumsum(1 - vs_mask, dim=0)
         new_faces -= cummusum[new_faces].to(new_faces.device).long()

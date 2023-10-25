@@ -48,7 +48,7 @@ def read_pts(pts_file):
             try:
                 x = np.array(parts, dtype=np.float32)
                 xyz.append(x[:3])
-                normals.append(x[3:])
+                normals.append(x[-3:])
             except:
                 pass
     return np.array(xyz, dtype=np.float32), np.array(normals, dtype=np.float32)
